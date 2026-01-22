@@ -7,20 +7,20 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     build-essential
 
-# Install Node.js INSIDE container
+# Install Node.js
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
     && apt-get install -y nodejs
 
-# Set working directory inside container
+# Set working directory
 WORKDIR /app
 
 # Copy package files first
 COPY package*.json ./
 
-# Install node dependencies
+# Install dependencies
 RUN npm install
 
-# Copy remaining backend files
+# Copy backend source
 COPY . .
 
 # Expose backend port

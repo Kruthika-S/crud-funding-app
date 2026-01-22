@@ -9,6 +9,8 @@ services:
     depends_on:
       - mysql
       - redis
+    env_file:
+      - .env
     environment:
       DB_HOST: mysql
       DB_USER: root
