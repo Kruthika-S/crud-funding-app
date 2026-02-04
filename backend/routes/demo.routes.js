@@ -66,6 +66,35 @@ router.post(
 );
 
 
+/**
+ * EMAIL VERIFICATION
+ */
+router.get("/verify/:token", async (req, res, next) => {
+  try {
+    const { token } = req.params;
+
+    const [rows] = await db.execute(
+      "SELECT id FROM users WHERE verification_token = ?",
+      [token]
+    );
+
+    if (rows.length === 0) {
+      return res.status(400).send("Invalid or expired verification link");
+    }
+
+    await db.execute(
+  "UPDATE users SET is_verified = 1, verification_token = NULL WHERE verification_token = ?",
+  [token]
+);
+
+
+    res.send("Email verified successfully! You can now login.");
+  } catch (err) {
+    next(err);
+  }
+});
+
+
 
 /**
  * LOGIN
@@ -90,11 +119,12 @@ router.post("/login", async (req, res, next) => {
 
     // block login if not verified
     if (!user.is_verified) {
-      return res.status(403).json({
-        status: "error",
-        message: "Please verify your email before logging in",
-      });
-    }
+  return res.status(403).json({
+    status: "error",
+    message: "Please verify your email before logging in",
+  });
+}
+s
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
