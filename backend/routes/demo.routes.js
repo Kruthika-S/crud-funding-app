@@ -34,7 +34,7 @@ router.post("/register", async (req, res, next) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const verifyToken = generateVerifyToken();
-    const expires = new Date(Date.now() + 60 * 1000);
+    const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     await db.execute(
       `INSERT INTO users 
@@ -77,7 +77,6 @@ router.get("/verify/:token", async (req, res, next) => {
 
     const user = rows[0];
 
-    // expiry check safe version
     if (user.verification_expires && new Date(user.verification_expires) < new Date()) {
       return res.status(400).send("Link expired");
     }
@@ -130,8 +129,7 @@ router.post("/resend-verification", async (req, res, next) => {
     }
 
     const verifyToken = generateVerifyToken();
-    const expires = new Date(Date.now() + 60 * 1000); // 1 min (testing)
-
+    const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     await db.execute(
       `UPDATE users
@@ -185,7 +183,6 @@ router.post(
 
       const user = rows[0];
 
-      // 🔴 FIRST CHECK VERIFIED
       if (user.is_verified === 0) {
         return res.status(403).json({
           status: "error",
@@ -193,7 +190,6 @@ router.post(
         });
       }
 
-      // 🔴 THEN PASSWORD CHECK
       const match = await bcrypt.compare(password, user.password);
       if (!match) {
         return res.status(400).json({
@@ -218,6 +214,137 @@ router.post(
     }
   }
 );
+
+/**
+ * =================
+ * FORGET PASSWORD ROUTE
+ * =================
+ */
+
+router.post("/forgot-password", async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    const [rows] = await db.execute(
+      "SELECT * FROM users WHERE email = ?",
+      [email]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
+    }
+
+    const resetToken = generateVerifyToken();
+    const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    await db.execute(
+      `UPDATE users 
+       SET reset_token = ?, reset_expires = ?
+       WHERE email = ?`,
+      [resetToken, expires, email]
+    );
+
+    const resetLink = `http://192.168.1.3:5000/api/reset-password/${resetToken}`;
+
+    await sendVerificationMail(email, resetLink);
+
+    res.json({
+      status: "success",
+      message: "Password reset email sent",
+    });
+
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * =================
+ * VERIFY RESET ROUTE
+ * =================
+ */
+
+router.get("/reset-password/:token", async (req, res, next) => {
+  try {
+    const { token } = req.params;
+
+    const [rows] = await db.execute(
+      "SELECT * FROM users WHERE reset_token = ?",
+      [token]
+    );
+
+    if (rows.length === 0) {
+      return res.send("Invalid reset link");
+    }
+
+    const user = rows[0];
+
+    if (new Date(user.reset_expires) < new Date()) {
+      return res.send("Reset link expired");
+    }
+
+    res.send("Token valid. Send POST request with new password.");
+
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+/**
+ * =================
+ * UPDATE PASSWORD ROUTE
+ * =================
+ */
+
+router.post("/reset-password/:token", async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    const [rows] = await db.execute(
+      "SELECT * FROM users WHERE reset_token = ?",
+      [token]
+    );
+
+    if (rows.length === 0) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid token",
+      });
+    }
+
+    const user = rows[0];
+
+    if (new Date(user.reset_expires) < new Date()) {
+      return res.status(400).json({
+        status: "error",
+        message: "Token expired",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await db.execute(
+      `UPDATE users 
+       SET password = ?, reset_token = NULL, reset_expires = NULL
+       WHERE id = ?`,
+      [hashedPassword, user.id]
+    );
+
+    res.json({
+      status: "success",
+      message: "Password updated successfully",
+    });
+
+  } catch (err) {
+    next(err);
+  }
+});
+
 
 /**
  * =================
