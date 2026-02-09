@@ -6,6 +6,10 @@ import { requestLogger } from "./middleware/requestLogger.js";
 import { securityMiddleware } from "./middleware/security.js";
 import demoRoutes from "./routes/demo.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import campaignRoutes from "./routes/campaign.routes.js";
+import donationRoutes from "./routes/donation.routes.js";
+
+
 
 console.log("MAIL_USER:", process.env.MAIL_USER);
 console.log("MAIL_PASS exists:", !!process.env.MAIL_PASS);
@@ -32,6 +36,10 @@ securityMiddleware(app);
  * 4️⃣ Routes
  */
 app.use("/api", demoRoutes);
+app.use("/api/campaigns", campaignRoutes);
+app.use("/api/donations", donationRoutes);
+
+
 
 /**
  * 5️⃣ Health check
