@@ -8,6 +8,8 @@ import demoRoutes from "./routes/demo.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import campaignRoutes from "./routes/campaign.routes.js";
 import donationRoutes from "./routes/donation.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
+
 
 
 
@@ -38,6 +40,8 @@ securityMiddleware(app);
 app.use("/api", demoRoutes);
 app.use("/api/campaigns", campaignRoutes);
 app.use("/api/donations", donationRoutes);
+app.use("/api/payment", paymentRoutes);
+
 
 
 
