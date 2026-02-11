@@ -2,6 +2,8 @@ import express from "express";
 import { db } from "../config/db.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import redis from "../config/redis.js";
+import { upload } from "../middleware/upload.middleware.js";
+
 
 const router = express.Router();
 
@@ -161,5 +163,44 @@ router.delete("/:id", authMiddleware, async (req, res) => {
     });
   }
 });
+
+/**
+ * Upload campaign media
+ */
+router.post(
+  "/upload-media/:id",
+  authMiddleware,
+  upload.single("media"),
+  async (req, res) => {
+    try {
+      const campaignId = req.params.id;
+
+      if (!req.file) {
+        return res.status(400).json({
+          error: "No file uploaded"
+        });
+      }
+
+      const filePath = req.file.filename;
+
+      await db.execute(
+        "UPDATE campaigns SET media=? WHERE id=?",
+        [filePath, campaignId]
+      );
+
+      res.json({
+        message: "Media uploaded",
+        file: filePath
+      });
+
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({
+        error: "Upload failed"
+      });
+    }
+  }
+);
+
 
 export default router;

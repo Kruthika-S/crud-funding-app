@@ -9,6 +9,9 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import campaignRoutes from "./routes/campaign.routes.js";
 import donationRoutes from "./routes/donation.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
+import likesRoutes from "./routes/likes.routes.js";
+import commentRoutes from "./routes/comments.routes.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
 
 
 
@@ -41,6 +44,10 @@ app.use("/api", demoRoutes);
 app.use("/api/campaigns", campaignRoutes);
 app.use("/api/donations", donationRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/likes", likesRoutes);
+app.use("/api/comments", commentRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/uploads", express.static("uploads"));
 
 
 
